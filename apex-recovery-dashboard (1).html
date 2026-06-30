@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex Recovery — Sistema Operacional</title>
+<style>
+:root{--gold:#C9973A;--gold-l:#E8C16A;--gold-d:#7A5518;--gold-bg:#13100A;--black:#080808;--dark:#111;--card:#1A1A1A;--card2:#212121;--card3:#2A2A2A;--white:#F5F5F5;--gray1:#AAAAAA;--gray2:#666;--gray3:#333;--blue:#378ADD;--blue-l:#82BFFF;--blue-bg:#0A1520;--green:#1D9E75;--green-l:#4DDBA8;--green-bg:#061410;--red:#E24B4A;--red-l:#F09595;--red-bg:#2F0D0D;--purple:#9B93F0;--purple-bg:#12112A;--radius:8px;--radius-lg:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--black);color:var(--white);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh}
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--black)}
+.login-box{background:var(--card);border:0.5px solid var(--gold-d);border-radius:var(--radius-lg);padding:2.5rem;width:100%;max-width:380px;text-align:center}
+.login-title{font-size:20px;font-weight:600;color:var(--gold-l);margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--gray2);margin-bottom:1.75rem;font-style:italic}
+.login-box input{width:100%;background:var(--dark);border:0.5px solid var(--gray3);border-radius:var(--radius);padding:10px 14px;color:var(--white);font-size:14px;margin-bottom:.75rem;outline:none}
+.login-box input:focus{border-color:var(--gold)}
+.btn-gold{width:100%;background:var(--gold);color:var(--black);border:none;border-radius:var(--radius);padding:11px;font-size:14px;font-weight:600;cursor:pointer}
+.btn-gold:hover{background:var(--gold-l)}
+.login-err{color:var(--red-l);font-size:12px;margin-top:.5rem;min-height:18px}
+#app{display:none;flex-direction:column;min-height:100vh}
+.topbar{background:var(--card);border-bottom:0.5px solid var(--gold-d);padding:0 1.25rem;height:52px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+.topbar-logo{font-size:15px;font-weight:700;color:var(--gold-l);letter-spacing:.5px}
+.topbar-logo span{color:var(--gray2);font-weight:400;font-size:12px;margin-left:6px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--gray2);flex-shrink:0}
+.sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--red)}
+.sync-label{font-size:11px;color:var(--gray2)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.user-badge{font-size:12px;color:var(--gray1);background:var(--dark);padding:4px 10px;border-radius:20px}
+.btn-logout{background:none;border:0.5px solid var(--gray3);border-radius:var(--radius);padding:5px 12px;color:var(--gray2);font-size:12px;cursor:pointer}
+.btn-logout:hover{border-color:var(--red-l);color:var(--red-l)}
+.session-bar{background:var(--gold-bg);border-bottom:0.5px solid var(--gold-d);padding:6px 1.25rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.session-bar.hidden{display:none}
+.session-info{font-size:12px;color:var(--gold-l)}
+.session-rev{font-size:13px;font-weight:600;color:var(--gold)}
+.btn-sm{padding:4px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;border:0.5px solid}
+.btn-open{border-color:var(--gold);color:var(--gold);background:transparent}
+.btn-open:hover{background:var(--gold-bg)}
+.btn-close{border-color:var(--red-l);color:var(--red-l);background:transparent}
+.btn-close:hover{background:var(--red-bg)}
+.sidebar{width:200px;background:var(--dark);border-right:0.5px solid var(--card3);flex-shrink:0;padding:1rem 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 1.25rem;font-size:13px;color:var(--gray1);cursor:pointer;border-left:3px solid transparent;transition:all .15s}
+.nav-item:hover{background:var(--card);color:var(--white)}
+.nav-item.active{background:var(--card);color:var(--gold-l);border-left-color:var(--gold)}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.nav-section{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--gray3);padding:1rem 1.25rem .4rem;text-transform:uppercase}
+.main-content{display:flex;flex:1}
+.page-area{flex:1;padding:1.25rem;overflow-y:auto}
+.screen{display:none}.screen.active{display:block}
+.card{background:var(--card);border:0.5px solid var(--card3);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:.85rem}
+.card-title{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gray2);margin-bottom:.75rem}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:.85rem}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:.85rem}
+.g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:.85rem}
+.metric{background:var(--card2);border-radius:var(--radius);padding:.85rem 1rem}
+.metric .lbl{font-size:11px;color:var(--gray2);margin-bottom:5px}
+.metric .val{font-size:22px;font-weight:600;color:var(--white)}
+.metric .sub{font-size:11px;color:var(--gray2);margin-top:3px}
+.divider{border:none;border-top:0.5px solid var(--card3);margin:.75rem 0}
+.row-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--card3);font-size:13px}
+.row-item:last-child{border-bottom:none}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.b-gold{background:var(--gold-bg);color:var(--gold-l)}.b-green{background:var(--green-bg);color:var(--green-l)}
+.b-blue{background:var(--blue-bg);color:var(--blue-l)}.b-red{background:var(--red-bg);color:var(--red-l)}
+.b-gray{background:var(--card3);color:var(--gray1)}.b-purple{background:var(--purple-bg);color:var(--purple)}
+.form-group{display:flex;flex-direction:column;gap:4px;margin-bottom:.6rem}
+.form-group label{font-size:11px;color:var(--gray2);font-weight:500}
+.form-group input,.form-group select,.form-group textarea{background:var(--dark);border:0.5px solid var(--card3);border-radius:var(--radius);padding:8px 12px;color:var(--white);font-size:13px;outline:none;width:100%}
+.form-group input:focus,.form-group select:focus{border-color:var(--gold)}
+.form-group select option{background:var(--dark)}
+.plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem}
+.plan-btn{background:var(--card2);border:0.5px solid var(--card3);border-radius:var(--radius);padding:10px 12px;cursor:pointer;text-align:left;color:var(--white)}
+.plan-btn:hover{border-color:var(--gold-d)}
+.plan-btn.selected{border-color:var(--gold);background:var(--gold-bg)}
+.plan-btn .plan-name{font-size:12px;color:var(--gray1)}
+.plan-btn .plan-price{font-size:17px;font-weight:700;color:var(--gold-l);display:block;margin-top:3px}
+.plan-btn.selected .plan-name{color:var(--gold)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold-l);flex-shrink:0;border:1px solid var(--gold-d)}
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--gray2);padding:8px 10px;border-bottom:0.5px solid var(--card3);white-space:nowrap}
+.data-table td{padding:9px 10px;border-bottom:0.5px solid var(--card3);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--card2)}
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:13px;cursor:pointer;border:0.5px solid var(--card3);background:transparent;color:var(--white)}
+.btn:hover{background:var(--card2)}
+.btn-primary{background:var(--gold);color:var(--black);border-color:var(--gold);font-weight:600}
+.btn-primary:hover{background:var(--gold-l)}
+.btn-danger{border-color:var(--red-l);color:var(--red-l)}
+.btn-danger:hover{background:var(--red-bg)}
+.btn-icon{background:none;border:none;cursor:pointer;padding:4px 6px;color:var(--gray2)}
+.btn-icon:hover{color:var(--red-l)}
+.checkin-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--card3)}
+.checkin-row:last-child{border-bottom:none}
+.plan-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--green-bg);border:0.5px solid var(--green);color:var(--green-l);padding:10px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;display:none;z-index:9999;max-width:280px}
+.search-box{background:var(--dark);border:0.5px solid var(--card3);border-radius:var(--radius);padding:7px 12px;color:var(--white);font-size:13px;outline:none;width:100%}
+.search-box:focus{border-color:var(--gold)}
+.empty-state{text-align:center;padding:2.5rem 1rem;color:var(--gray2);font-size:13px}
+.admin-only{display:none}
+body.is-admin .admin-only{display:block}
+
+/* ── RELATÓRIO SELECTOR ── */
+.sess-select-card{background:var(--card2);border:0.5px solid var(--card3);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:border-color .15s}
+.sess-select-card:hover{border-color:var(--gold-d)}
+.sess-select-card.selected{border-color:var(--gold);background:var(--gold-bg)}
+.sess-select-card input[type=radio]{accent-color:var(--gold);width:16px;height:16px;flex-shrink:0}
+
+/* ── PRINT / PDF ── */
+@media print{
+  body{background:#fff!important;color:#000!important}
+  #login-screen,#app>.topbar,#app>.session-bar,#app>.session-bar+div,.sidebar,#no-session-bar,.no-print{display:none!important}
+  .page-area{padding:0!important}
+  .screen{display:none!important}
+  #screen-relatorios{display:block!important}
+  #rel-export-bar{display:none!important}
+  .print-report{display:block!important}
+  .report-page{page-break-after:always;padding:16mm;background:#fff}
+  .report-page:last-child{page-break-after:avoid}
+  .rpt-header{border-bottom:2px solid #C9973A;padding-bottom:12px;margin-bottom:20px}
+  .rpt-title{font-size:22px;font-weight:700;color:#0a0a0a}
+  .rpt-sub{font-size:13px;color:#666;margin-top:4px}
+  .rpt-gold{color:#C9973A;font-weight:700}
+  .rpt-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+  .rpt-metric{background:#f5f5f5;border-radius:8px;padding:12px 14px;text-align:center}
+  .rpt-metric .lbl{font-size:11px;color:#666;margin-bottom:4px}
+  .rpt-metric .val{font-size:20px;font-weight:700;color:#0a0a0a}
+  .rpt-metric .sub{font-size:10px;color:#999;margin-top:3px}
+  .rpt-section{margin-top:20px}
+  .rpt-section-title{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#999;border-bottom:0.5px solid #ddd;padding-bottom:6px;margin-bottom:12px}
+  .rpt-table{width:100%;border-collapse:collapse;font-size:12px}
+  .rpt-table th{text-align:left;padding:7px 8px;background:#f0f0f0;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#666}
+  .rpt-table td{padding:7px 8px;border-bottom:0.5px solid #eee}
+  .rpt-bar{height:10px;background:#eee;border-radius:5px;overflow:hidden;margin-top:4px}
+  .rpt-bar-fill{height:100%;border-radius:5px;background:#C9973A}
+  .rpt-alert{background:#FFF8EC;border-left:3px solid #C9973A;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;margin:8px 0;color:#412402}
+  .rpt-alert.ok{background:#F0FAF5;border-left-color:#1D9E75;color:#04342C}
+  .rpt-alert.danger{background:#FFF0F0;border-left-color:#E24B4A;color:#501313}
+}
+
+@media screen{
+  .print-report{background:var(--card);border:0.5px solid var(--card3);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1rem}
+  .report-page{background:var(--card2);border-radius:var(--radius);padding:1.25rem;margin-bottom:.75rem}
+  .rpt-header{border-bottom:1px solid var(--gold-d);padding-bottom:12px;margin-bottom:16px}
+  .rpt-title{font-size:18px;font-weight:700;color:var(--gold-l)}
+  .rpt-sub{font-size:12px;color:var(--gray2);margin-top:4px}
+  .rpt-gold{color:var(--gold-l);font-weight:600}
+  .rpt-metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+  .rpt-metric{background:var(--card);border-radius:var(--radius);padding:10px 12px;text-align:center}
+  .rpt-metric .lbl{font-size:11px;color:var(--gray2);margin-bottom:4px}
+  .rpt-metric .val{font-size:18px;font-weight:700;color:var(--white)}
+  .rpt-metric .sub{font-size:10px;color:var(--gray2);margin-top:2px}
+  .rpt-section{margin-top:16px}
+  .rpt-section-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gray2);border-bottom:0.5px solid var(--card3);padding-bottom:5px;margin-bottom:10px}
+  .rpt-table{width:100%;border-collapse:collapse;font-size:12px}
+  .rpt-table th{text-align:left;padding:6px 8px;background:var(--dark);font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--gray2)}
+  .rpt-table td{padding:7px 8px;border-bottom:0.5px solid var(--card3);color:var(--white)}
+  .rpt-bar{height:8px;background:var(--card3);border-radius:4px;overflow:hidden;margin-top:4px}
+  .rpt-bar-fill{height:100%;border-radius:4px;background:var(--gold)}
+  .rpt-alert{background:var(--gold-bg);border-left:3px solid var(--gold);padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;margin:6px 0;color:var(--gold-l)}
+  .rpt-alert.ok{background:var(--green-bg);border-left-color:var(--green);color:var(--green-l)}
+  .rpt-alert.danger{background:var(--red-bg);border-left-color:var(--red);color:var(--red-l)}
+}
+@media(max-width:640px){.sidebar{display:none}.g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr}.plan-grid{grid-template-columns:1fr}.topbar-logo span{display:none}.rpt-metric-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div style="font-size:32px;font-weight:900;color:var(--gold-l);letter-spacing:3px;margin-bottom:4px">APEX</div>
+    <div style="font-size:11px;color:var(--gold-d);letter-spacing:.15em;margin-bottom:1.5rem">RECOVERY</div>
+    <div class="login-title">Sistema Operacional</div>
+    <div class="login-sub">Recupere · Recarregue · Supere</div>
+    <input type="text" id="login-user" placeholder="Usuário">
+    <input type="password" id="login-pass" placeholder="Senha">
+    <button class="btn-gold" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none;flex-direction:column;min-height:100vh">
+  <div class="topbar">
+    <div class="topbar-logo">APEX RECOVERY <span>Sistema Operacional</span></div>
+    <div class="sync-dot" id="sync-dot"></div>
+    <div class="sync-label" id="sync-label">Conectando...</div>
+    <div class="topbar-right">
+      <div class="user-badge" id="user-badge">—</div>
+      <button class="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </div>
+  <div class="session-bar hidden" id="session-bar">
+    <svg width="14" height="14" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    <div class="session-info" id="session-info-text">—</div>
+    <div class="session-rev" id="session-rev-text">R$ 0,00</div>
+    <div style="margin-left:auto;display:flex;gap:6px">
+      <button class="btn-sm btn-close" onclick="closeSession()">Encerrar sessão</button>
+    </div>
+  </div>
+  <div class="session-bar hidden" id="no-session-bar" style="background:var(--dark)">
+    <svg width="14" height="14" fill="none" stroke="var(--gray2)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div style="font-size:12px;color:var(--gray2)">Nenhuma sessão ativa</div>
+    <button class="btn-sm btn-open" onclick="openSession()" style="margin-left:auto">Abrir sessão</button>
+  </div>
+  <div class="main-content">
+    <div class="sidebar">
+      <div class="nav-section">Operacional</div>
+      <div class="nav-item active" onclick="nav('checkin',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Check-in
+      </div>
+      <div class="nav-section">Financeiro</div>
+      <div class="nav-item" onclick="nav('caixa',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Fluxo de caixa
+      </div>
+      <div class="nav-section">Clientes</div>
+      <div class="nav-item" onclick="nav('crm',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Clientes / CRM
+      </div>
+      <div class="nav-section">Histórico</div>
+      <div class="nav-item" onclick="nav('historico',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="12 8 12 12 14 14"/><path d="M3.05 11a9 9 0 1 0 .5-4.5"/><polyline points="3 3 3 7 7 7"/></svg>Sessões
+      </div>
+      <div class="nav-section">Relatórios</div>
+      <div class="nav-item" onclick="nav('relatorios',this)">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Exportar
+      </div>
+      <div class="admin-only">
+        <div class="nav-section">Admin</div>
+        <div class="nav-item" onclick="nav('admin',this)">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Configurações
+        </div>
+      </div>
+    </div>
+
+    <div class="page-area">
+
+      <!-- CHECK-IN -->
+      <div id="screen-checkin" class="screen active">
+        <div class="g2">
+          <div class="card">
+            <div class="card-title">Dados do atleta</div>
+            <div class="form-group"><label>Nome completo *</label><input type="text" id="f-nome" placeholder="Ex: João Silva"></div>
+            <div class="form-group"><label>WhatsApp *</label><input type="tel" id="f-zap" placeholder="(88) 99999-9999"></div>
+            <div class="form-group"><label>Instagram</label><input type="text" id="f-insta" placeholder="@usuario"></div>
+            <div class="form-group"><label>Evento / Local</label><input type="text" id="f-local" placeholder="Ex: Corrida de Granja"></div>
+            <div class="form-group"><label>Observação</label><input type="text" id="f-obs" placeholder="Ex: lesão no joelho..."></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Plano escolhido</div>
+            <div class="plan-grid">
+              <button class="plan-btn" onclick="selectPlan(this,'banheira',29.9)"><div class="plan-name">Só banheira</div><span class="plan-price">R$ 29,90</span></button>
+              <button class="plan-btn" onclick="selectPlan(this,'bota+banheira',49.9)"><div class="plan-name">Bota + banheira</div><span class="plan-price">R$ 49,90</span></button>
+              <button class="plan-btn" onclick="selectPlan(this,'massagem+banheira',59.9)"><div class="plan-name">Massagem + banheira</div><span class="plan-price">R$ 59,90</span></button>
+              <button class="plan-btn" onclick="selectPlan(this,'combo completo',89.9)"><div class="plan-name">Combo completo</div><span class="plan-price">R$ 89,90</span></button>
+            </div>
+            <div style="background:var(--card2);border-radius:var(--radius);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+              <span style="font-size:12px;color:var(--gray2)">Selecionado:</span>
+              <span style="font-size:15px;font-weight:700;color:var(--gold-l)" id="plan-selected-label">—</span>
+            </div>
+            <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px" onclick="doCheckin()">✓ Confirmar check-in</button>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+            <div class="card-title" style="margin-bottom:0">Atletas nesta sessão — <span id="count-sess">0</span></div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:13px;font-weight:600;color:var(--green-l)" id="rev-sess">R$ 0,00</span>
+              <span style="font-size:11px;color:var(--gray2)">na sessão</span>
+            </div>
+          </div>
+          <div id="checkin-list"><div class="empty-state">Nenhum check-in ainda</div></div>
+        </div>
+      </div>
+
+      <!-- CAIXA -->
+      <div id="screen-caixa" class="screen">
+        <div class="g4">
+          <div class="metric"><div class="lbl">Total entradas</div><div class="val" style="color:var(--green-l)" id="cx-ent">R$ 0,00</div><div class="sub">todas as sessões</div></div>
+          <div class="metric"><div class="lbl">Total saídas</div><div class="val" style="color:var(--red-l)" id="cx-sai">R$ 0,00</div><div class="sub">custos registrados</div></div>
+          <div class="metric"><div class="lbl">Saldo líquido</div><div class="val" id="cx-saldo">R$ 0,00</div><div class="sub" id="cx-saldo-sub">—</div></div>
+          <div class="metric"><div class="lbl">Atendimentos</div><div class="val" id="cx-atend">0</div><div class="sub">total geral</div></div>
+        </div>
+        <div class="g2">
+          <div class="card">
+            <div class="card-title">Registrar saída</div>
+            <div class="form-group"><label>Descrição *</label><input type="text" id="cx-desc" placeholder="Gelo, Gasolina, Massoterapeuta..."></div>
+            <div class="form-group"><label>Valor (R$) *</label><input type="number" id="cx-val" placeholder="0,00" step="0.01" min="0"></div>
+            <div class="form-group"><label>Categoria</label>
+              <select id="cx-cat"><option value="operacional">Operacional</option><option value="pessoal">Pessoal / Staff</option><option value="logistica">Logística</option><option value="marketing">Marketing</option><option value="equipamento">Equipamento</option><option value="outro">Outro</option></select>
+            </div>
+            <button class="btn btn-danger" style="width:100%" onclick="addSaida()">− Registrar saída</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Por categoria</div>
+            <div id="cx-cats"><div class="empty-state">Nenhuma saída ainda</div></div>
+          </div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:8px">
+            <div class="card-title" style="margin-bottom:0">Lançamentos</div>
+            <button class="btn" style="font-size:12px" onclick="exportCSV('caixa')">↓ CSV</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="data-table"><thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th>Tipo</th><th>Valor</th><th></th></tr></thead><tbody id="cx-tbody"></tbody></table>
+          </div>
+          <div id="cx-empty" class="empty-state" style="display:none">Nenhum lançamento</div>
+        </div>
+      </div>
+
+      <!-- CRM -->
+      <div id="screen-crm" class="screen">
+        <div class="g3">
+          <div class="metric"><div class="lbl">Total clientes</div><div class="val" id="crm-total">0</div><div class="sub">base cadastrada</div></div>
+          <div class="metric"><div class="lbl">Ticket médio</div><div class="val" id="crm-ticket">R$ 0,00</div><div class="sub">por cliente</div></div>
+          <div class="metric"><div class="lbl">Mais vendido</div><div class="val" id="crm-top" style="font-size:14px;line-height:1.3">—</div><div class="sub">por volume</div></div>
+        </div>
+        <div class="card">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:.85rem;flex-wrap:wrap">
+            <div class="card-title" style="margin-bottom:0;flex:1">Base de clientes</div>
+            <input class="search-box" style="width:220px" type="text" id="crm-search" placeholder="Buscar..." oninput="renderCRM()">
+            <button class="btn" style="font-size:12px" onclick="exportCSV('crm')">↓ CSV</button>
+          </div>
+          <div id="crm-list"></div>
+        </div>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div id="screen-historico" class="screen">
+        <div class="card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+            <div class="card-title" style="margin-bottom:0">Sessões encerradas</div>
+          </div>
+          <div id="hist-list"><div class="empty-state">Nenhuma sessão encerrada ainda</div></div>
+        </div>
+      </div>
+
+      <!-- RELATÓRIOS -->
+      <div id="screen-relatorios" class="screen">
+        <div class="card no-print" id="rel-export-bar">
+          <div class="card-title">Gerar relatório</div>
+          <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <div style="font-size:12px;color:var(--gray2);margin-bottom:8px">Selecione a sessão:</div>
+              <div id="rel-sess-list"><div class="empty-state">Nenhuma sessão disponível</div></div>
+              <div style="margin-top:8px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--gray1)">
+                  <input type="radio" name="rel-scope" value="geral" style="accent-color:var(--gold)"> Relatório geral (todas as sessões)
+                </label>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
+              <button class="btn btn-primary" onclick="gerarRelatorio()" style="width:100%">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:5px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Visualizar relatório
+              </button>
+              <button class="btn" onclick="exportarPDF()" style="width:100%;border-color:var(--red-l);color:var(--red-l)">
+                ↓ Exportar PDF
+              </button>
+              <button class="btn" onclick="exportarExcel()" style="width:100%;border-color:var(--green-l);color:var(--green-l)">
+                ↓ Exportar Excel
+              </button>
+            </div>
+          </div>
+        </div>
+        <div id="rel-preview"></div>
+      </div>
+
+      <!-- ADMIN -->
+      <div id="screen-admin" class="screen admin-only">
+        <div class="card">
+          <div class="card-title">Configuração do Firebase</div>
+          <div class="form-group"><label>URL Realtime Database</label><input type="text" id="fb-url-input" placeholder="https://seu-projeto-default-rtdb.firebaseio.com/apex.json"></div>
+          <button class="btn btn-primary" onclick="saveFbUrl()">Salvar URL</button>
+          <div style="margin-top:.75rem;font-size:12px;color:var(--gray2)">URL atual: <span id="fb-url-display" style="color:var(--gold-l)">não configurada</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Usuários</div>
+          <table class="data-table"><thead><tr><th>Usuário</th><th>Perfil</th><th>Status</th></tr></thead><tbody id="users-tbody"></tbody></table>
+        </div>
+        <div class="card" style="border-color:var(--red-bg)">
+          <div class="card-title" style="color:var(--red-l)">Zona de perigo</div>
+          <button class="btn btn-danger" onclick="clearAllData()">Limpar todos os dados</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+const USERS_DEFAULT=[{id:1,nome:'Admin',senha:'apex2026',role:'admin',ativo:true},{id:2,nome:'Colaborador',senha:'apex01',role:'colaborador',ativo:true}];
+const PLAN_META={'banheira':{label:'Banheira',color:'#82BFFF',bg:'#0A1520'},'bota+banheira':{label:'Bota + Banheira',color:'#E8C16A',bg:'#13100A'},'massagem+banheira':{label:'Massagem + Banh',color:'#4DDBA8',bg:'#061410'},'combo completo':{label:'Combo Completo',color:'#9B93F0',bg:'#12112A'}};
+let currentUser=null,FB_URL=localStorage.getItem('apex:fb_url')||'',activeSession=null,clients=[],sessions=[],cashflow=[],selectedPlan=null,selectedPrice=0;
+
+async function fbGet(){if(!FB_URL)return null;try{const r=await fetch(FB_URL);if(!r.ok)throw new Error();setSyncStatus('ok');return await r.json();}catch{setSyncStatus('err');return null;}}
+async function fbSet(data){if(!FB_URL){localSave();return;}try{const r=await fetch(FB_URL,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});if(!r.ok)throw new Error();setSyncStatus('ok');}catch{setSyncStatus('err');localSave();}}
+function setSyncStatus(s){const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-label');if(s==='ok'){dot.className='sync-dot ok';lbl.textContent='Sincronizado ✓';}else if(s==='err'){dot.className='sync-dot err';lbl.textContent='Modo offline';}else{dot.className='sync-dot';lbl.textContent='Conectando...';}}
+function localSave(){localStorage.setItem('apex:data',JSON.stringify({clients,sessions,cashflow,activeSession}));}
+function localLoad(){const raw=localStorage.getItem('apex:data');if(raw){const d=JSON.parse(raw);clients=d.clients||[];sessions=d.sessions||[];cashflow=d.cashflow||[];activeSession=d.activeSession||null;}}
+async function loadData(){setSyncStatus('');const remote=await fbGet();if(remote){clients=remote.clients||[];sessions=remote.sessions||[];cashflow=remote.cashflow||[];activeSession=remote.activeSession||null;}else{localLoad();}updateUI();}
+async function saveData(){localSave();await fbSet({clients,sessions,cashflow,activeSession});updateUI();}
+
+function doLogin(){const u=document.getElementById('login-user').value.trim(),p=document.getElementById('login-pass').value.trim(),user=USERS_DEFAULT.find(x=>x.nome===u&&x.senha===p&&x.ativo);if(!user){document.getElementById('login-err').textContent='Usuário ou senha incorretos.';return;}currentUser=user;document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='flex';document.getElementById('user-badge').textContent=user.nome+' · '+(user.role==='admin'?'Admin':'Colaborador');if(user.role==='admin')document.body.classList.add('is-admin');loadData();}
+function doLogout(){currentUser=null;document.body.classList.remove('is-admin');document.getElementById('login-screen').style.display='flex';document.getElementById('app').style.display='none';document.getElementById('login-err').textContent='';document.getElementById('login-user').value='';document.getElementById('login-pass').value='';}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')doLogin();});
+
+function nav(id,el){document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));el.classList.add('active');document.getElementById('screen-'+id).classList.add('active');if(id==='caixa')renderCaixa();if(id==='crm')renderCRM();if(id==='historico')renderHistorico();if(id==='admin')renderAdmin();if(id==='relatorios')renderRelSessoes();}
+
+function openSession(){const now=new Date(),label='Sessão '+now.toLocaleDateString('pt-BR')+' '+now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});activeSession={id:'sess_'+Date.now(),label,openedAt:Date.now(),checkins:[]};saveData();toast('Sessão aberta!');}
+function closeSession(){if(!activeSession)return;if(!activeSession.checkins.length&&!confirm('Encerrar sessão sem check-ins?'))return;const rev=activeSession.checkins.reduce((a,c)=>a+c.price,0);sessions.push({...activeSession,closedAt:Date.now(),revenue:rev});if(rev>0){cashflow.push({id:'cf_'+Date.now(),type:'entrada',desc:'Receita: '+activeSession.label,value:rev,cat:'sessão',ts:Date.now(),sessionId:activeSession.id});}activeSession=null;saveData();toast('Sessão encerrada e dados salvos!');}
+
+function selectPlan(btn,plan,price){document.querySelectorAll('.plan-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');selectedPlan=plan;selectedPrice=price;const m=PLAN_META[plan];document.getElementById('plan-selected-label').textContent=m.label+' — R$ '+price.toFixed(2).replace('.',',');}
+function doCheckin(){if(!activeSession){alert('Abra uma sessão primeiro.');return;}const nome=document.getElementById('f-nome').value.trim(),zap=document.getElementById('f-zap').value.trim();if(!nome){alert('Informe o nome.');return;}if(!selectedPlan){alert('Selecione um plano.');return;}const entry={id:'cli_'+Date.now(),nome,zap,insta:document.getElementById('f-insta').value.trim(),local:document.getElementById('f-local').value.trim(),obs:document.getElementById('f-obs').value.trim(),plan:selectedPlan,price:selectedPrice,ts:Date.now(),sessionId:activeSession.id,sessionLabel:activeSession.label};activeSession.checkins.push(entry);const existing=clients.find(c=>c.zap&&c.zap===zap&&zap!=='');if(existing){existing.lastSeen=Date.now();existing.visits=(existing.visits||1)+1;existing.totalSpent=(existing.totalSpent||0)+selectedPrice;existing.history=existing.history||[];existing.history.push({plan:selectedPlan,price:selectedPrice,ts:Date.now(),local:entry.local});}else{clients.push({...entry,visits:1,totalSpent:selectedPrice,history:[{plan:selectedPlan,price:selectedPrice,ts:Date.now(),local:entry.local}]});}saveData();['f-nome','f-zap','f-insta','f-obs'].forEach(id=>document.getElementById(id).value='');document.querySelectorAll('.plan-btn').forEach(b=>b.classList.remove('selected'));selectedPlan=null;selectedPrice=0;document.getElementById('plan-selected-label').textContent='—';toast('Check-in de '+nome+' salvo!');}
+function removeCheckin(id){if(!activeSession||!confirm('Remover?'))return;activeSession.checkins=activeSession.checkins.filter(c=>c.id!==id);clients=clients.filter(c=>c.id!==id);saveData();toast('Removido.');}
+function renderCheckinList(){const el=document.getElementById('checkin-list');if(!activeSession||!activeSession.checkins.length){el.innerHTML='<div class="empty-state">Nenhum check-in nesta sessão</div>';return;}el.innerHTML=[...activeSession.checkins].reverse().map(c=>{const m=PLAN_META[c.plan]||{label:c.plan,color:'#aaa',bg:'#222'};const init=c.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();return`<div class="checkin-row"><div class="avatar" style="background:${m.bg};color:${m.color};border-color:${m.color}">${init}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${c.nome}</div><div style="font-size:11px;color:var(--gray2);margin-top:2px">${c.zap||'—'} ${c.insta?'· '+c.insta:''} ${c.local?'· '+c.local:''}</div></div><span class="plan-tag" style="background:${m.bg};color:${m.color}">${m.label}</span><span style="font-weight:700;font-size:14px;color:var(--gold-l);white-space:nowrap;min-width:64px;text-align:right">R$${c.price.toFixed(2).replace('.',',')}</span><button class="btn-icon" onclick="removeCheckin('${c.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></div>`;}).join('');const rev=activeSession.checkins.reduce((a,c)=>a+c.price,0);document.getElementById('rev-sess').textContent='R$ '+rev.toFixed(2).replace('.',',');document.getElementById('count-sess').textContent=activeSession.checkins.length;}
+
+function addSaida(){const desc=document.getElementById('cx-desc').value.trim(),val=parseFloat(document.getElementById('cx-val').value),cat=document.getElementById('cx-cat').value;if(!desc||!val||val<=0){alert('Preencha descrição e valor.');return;}cashflow.push({id:'cf_'+Date.now(),type:'saida',desc,value:val,cat,ts:Date.now()});document.getElementById('cx-desc').value='';document.getElementById('cx-val').value='';saveData();toast('Saída registrada!');}
+function deleteLancamento(id){if(!confirm('Excluir?'))return;cashflow=cashflow.filter(c=>c.id!==id);saveData();toast('Excluído.');}
+function renderCaixa(){const ent=cashflow.filter(c=>c.type==='entrada'),sai=cashflow.filter(c=>c.type==='saida'),totE=ent.reduce((a,c)=>a+c.value,0),totS=sai.reduce((a,c)=>a+c.value,0),saldo=totE-totS,totAtend=clients.reduce((a,c)=>a+(c.visits||1),0);document.getElementById('cx-ent').textContent=fmt(totE);document.getElementById('cx-sai').textContent=fmt(totS);const sel=document.getElementById('cx-saldo');sel.textContent=fmt(Math.abs(saldo));sel.style.color=saldo>=0?'var(--green-l)':'var(--red-l)';document.getElementById('cx-saldo-sub').textContent=saldo>=0?'lucro líquido':'prejuízo';document.getElementById('cx-atend').textContent=totAtend;const cats={};sai.forEach(s=>{cats[s.cat]=(cats[s.cat]||0)+s.value;});const cEl=document.getElementById('cx-cats');if(!sai.length){cEl.innerHTML='<div class="empty-state">Nenhuma saída</div>';}else{cEl.innerHTML=Object.entries(cats).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="row-item"><span style="text-transform:capitalize;color:var(--gray1)">${k}</span><span style="margin-left:auto;color:var(--red-l);font-weight:600">${fmt(v)}</span><span style="font-size:11px;color:var(--gray2)">${Math.round(v/totS*100)}%</span></div>`).join('');}const tbody=document.getElementById('cx-tbody'),all=[...cashflow].sort((a,b)=>b.ts-a.ts);if(!all.length){document.getElementById('cx-empty').style.display='block';tbody.innerHTML='';return;}document.getElementById('cx-empty').style.display='none';tbody.innerHTML=all.map(c=>`<tr><td style="font-size:11px;color:var(--gray2);white-space:nowrap">${fmtDate(c.ts)}</td><td>${c.desc}</td><td><span class="badge b-gray" style="text-transform:capitalize">${c.cat}</span></td><td><span class="badge ${c.type==='entrada'?'b-green':'b-red'}">${c.type==='entrada'?'entrada':'saída'}</span></td><td style="font-weight:700;color:${c.type==='entrada'?'var(--green-l)':'var(--red-l)'};white-space:nowrap">${c.type==='entrada'?'+':'-'}${fmt(c.value)}</td><td><button class="btn-icon" onclick="deleteLancamento('${c.id}')"><svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg></button></td></tr>`).join('');}
+
+function renderCRM(){const q=(document.getElementById('crm-search')?.value||'').toLowerCase(),filtered=clients.filter(c=>c.nome.toLowerCase().includes(q)||(c.zap||'').includes(q)||(c.insta||'').toLowerCase().includes(q));document.getElementById('crm-total').textContent=clients.length;const avg=clients.length?clients.reduce((a,c)=>a+(c.totalSpent||c.price),0)/clients.length:0;document.getElementById('crm-ticket').textContent=fmt(avg);const pc={};clients.forEach(c=>{pc[c.plan]=(pc[c.plan]||0)+1;});const top=Object.entries(pc).sort((a,b)=>b[1]-a[1])[0];document.getElementById('crm-top').textContent=top?(PLAN_META[top[0]]?.label||top[0])+' ('+top[1]+'x)':'—';const el=document.getElementById('crm-list');if(!filtered.length){el.innerHTML='<div class="empty-state">'+(q?'Nenhum resultado':'Nenhum cliente cadastrado')+'</div>';return;}el.innerHTML=[...filtered].sort((a,b)=>b.ts-a.ts).map(c=>{const m=PLAN_META[c.plan]||{label:c.plan,color:'#aaa',bg:'#222'};const init=c.nome.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();return`<div class="row-item" style="align-items:flex-start;gap:10px"><div class="avatar" style="background:${m.bg};color:${m.color};border-color:${m.color};margin-top:2px">${init}</div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${c.nome} ${(c.visits||1)>1?`<span class="badge b-blue" style="font-size:10px">${c.visits}x</span>`:''}</div><div style="font-size:12px;color:var(--gray2);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">${c.zap?`<span>📱 ${c.zap}`:''}</span>${c.insta?`<span>📷 ${c.insta}</span>`:''}${c.local?`<span>📍 ${c.local}</span>`:''}</div>${c.obs?`<div style="font-size:11px;color:var(--gray2);font-style:italic;margin-top:2px">${c.obs}</div>`:''}</div><div style="text-align:right;flex-shrink:0"><div style="font-size:14px;font-weight:700;color:var(--green-l)">${fmt(c.totalSpent||c.price)}</div><span class="plan-tag" style="background:${m.bg};color:${m.color};font-size:11px">${m.label}</span><div style="font-size:11px;color:var(--gray2);margin-top:3px">${fmtDate(c.ts)}</div></div></div>`;}).join('');}
+
+function renderHistorico(){const el=document.getElementById('hist-list');if(!sessions.length){el.innerHTML='<div class="empty-state">Nenhuma sessão encerrada ainda</div>';return;}el.innerHTML=[...sessions].sort((a,b)=>b.closedAt-a.closedAt).map(s=>{const dur=Math.round((s.closedAt-s.openedAt)/60000);return`<div class="row-item" style="align-items:flex-start;gap:12px"><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600">${s.label}</div><div style="font-size:12px;color:var(--gray2);margin-top:3px">${fmtDate(s.openedAt)} · ${dur} min · ${s.checkins.length} atletas</div><div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:4px">${s.checkins.map(c=>`<span class="badge b-gray" style="font-size:10px">${c.nome.split(' ')[0]}</span>`).join('')}</div></div><div style="text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:6px;align-items:flex-end"><div><div style="font-size:16px;font-weight:700;color:var(--green-l)">${fmt(s.revenue)}</div><div style="font-size:11px;color:var(--gray2)">receita bruta</div></div><button class="btn" style="font-size:11px;padding:4px 10px" onclick="gerarRelatorioSessao('${s.id}')">Ver relatório</button></div></div>`;}).join('');}
+
+function renderAdmin(){document.getElementById('fb-url-display').textContent=FB_URL||'não configurada';document.getElementById('fb-url-input').value=FB_URL||'';document.getElementById('users-tbody').innerHTML=USERS_DEFAULT.map(u=>`<tr><td><strong>${u.nome}</strong></td><td><span class="badge ${u.role==='admin'?'b-gold':'b-gray'}">${u.role==='admin'?'Administrador':'Colaborador'}</span></td><td><span class="badge b-green">Ativo</span></td></tr>`).join('');}
+function saveFbUrl(){FB_URL=document.getElementById('fb-url-input').value.trim();localStorage.setItem('apex:fb_url',FB_URL);document.getElementById('fb-url-display').textContent=FB_URL||'não configurada';toast('URL salva! Recarregando...');loadData();}
+function clearAllData(){if(!confirm('Apagar tudo?'))return;if(!confirm('Confirmar?'))return;clients=[];sessions=[];cashflow=[];activeSession=null;saveData();toast('Dados apagados.');}
+
+// ── RELATÓRIOS ────────────────────────────────────────────────────────────────
+function renderRelSessoes(){const el=document.getElementById('rel-sess-list');if(!sessions.length){el.innerHTML='<div class="empty-state" style="padding:.75rem 0">Nenhuma sessão disponível</div>';return;}el.innerHTML=[...sessions].sort((a,b)=>b.closedAt-a.closedAt).map(s=>`<label class="sess-select-card"><input type="radio" name="rel-scope" value="${s.id}"><div><div style="font-size:13px;font-weight:600;color:var(--white)">${s.label}</div><div style="font-size:11px;color:var(--gray2);margin-top:2px">${s.checkins.length} atletas · ${fmt(s.revenue)} · ${fmtDate(s.closedAt)}</div></div></label>`).join('');}
+
+function getSessaoSelecionada(){const radio=document.querySelector('input[name="rel-scope"]:checked');if(!radio)return null;if(radio.value==='geral')return 'geral';return sessions.find(s=>s.id===radio.value)||null;}
+
+function buildRelData(scope){
+  let checkins,cashEntradas,cashSaidas,titulo,periodo;
+  if(scope==='geral'){
+    checkins=sessions.flatMap(s=>s.checkins);
+    cashEntradas=cashflow.filter(c=>c.type==='entrada');
+    cashSaidas=cashflow.filter(c=>c.type==='saida');
+    titulo='Relatório Geral — Apex Recovery';
+    const datas=sessions.map(s=>s.openedAt).sort();
+    periodo=datas.length?fmtDate(datas[0])+' a '+fmtDate(datas[datas.length-1]):'—';
+  } else {
+    checkins=scope.checkins;
+    cashEntradas=cashflow.filter(c=>c.sessionId===scope.id&&c.type==='entrada');
+    cashSaidas=cashflow.filter(c=>c.type==='saida');
+    titulo='Relatório de Sessão — '+scope.label;
+    periodo=fmtDate(scope.openedAt)+' · '+(Math.round((scope.closedAt-scope.openedAt)/60000))+' min';
+  }
+  const receitaBruta=checkins.reduce((a,c)=>a+c.price,0);
+  const totalSaidas=cashSaidas.reduce((a,c)=>a+c.value,0);
+  const saldo=receitaBruta-totalSaidas;
+  const ticketMedio=checkins.length?receitaBruta/checkins.length:0;
+  const planCount={};
+  checkins.forEach(c=>{planCount[c.plan]=(planCount[c.plan]||0)+1;});
+  const catCount={};
+  cashSaidas.forEach(c=>{catCount[c.cat]=(catCount[c.cat]||0)+c.value;});
+  return{titulo,periodo,checkins,cashEntradas,cashSaidas,receitaBruta,totalSaidas,saldo,ticketMedio,planCount,catCount};
+}
+
+function buildReportHTML(d,forPrint=false){
+  const alertaSaldo=d.saldo>=0?`<div class="rpt-alert ok">✓ Operação positiva — lucro de ${fmt(d.saldo)}</div>`:`<div class="rpt-alert danger">⚠ Operação negativa — prejuízo de ${fmt(Math.abs(d.saldo))}. Revisar custos.</div>`;
+  const ticketAlert=d.ticketMedio>59?`<div class="rpt-alert ok">✓ Ticket médio acima de R$ 59 — mix saudável</div>`:`<div class="rpt-alert">⚠ Ticket médio abaixo de R$ 59 — focar upsell para combo</div>`;
+  const maxPlan=Math.max(...Object.values(d.planCount),1);
+  const planosRows=Object.entries(d.planCount).sort((a,b)=>b[1]-a[1]).map(([plan,qt])=>{const m=PLAN_META[plan]||{label:plan};const receita=qt*(plan==='banheira'?29.9:plan==='bota+banheira'?49.9:plan==='massagem+banheira'?59.9:89.9);return`<tr><td>${m.label}</td><td style="text-align:center;font-weight:600">${qt}</td><td>${Math.round(qt/d.checkins.length*100)}%</td><td style="font-weight:600">${fmt(receita)}</td><td><div class="rpt-bar"><div class="rpt-bar-fill" style="width:${Math.round(qt/maxPlan*100)}%"></div></div></td></tr>`;}).join('');
+  const clientesRows=d.checkins.map(c=>`<tr><td style="font-weight:600">${c.nome}</td><td>${c.zap||'—'}</td><td>${c.insta||'—'}</td><td>${c.local||'—'}</td><td>${PLAN_META[c.plan]?.label||c.plan}</td><td style="font-weight:600;color:${forPrint?'#1D9E75':'var(--green-l)'}">${fmt(c.price)}</td></tr>`).join('');
+  const custosRows=Object.entries(d.catCount).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>`<tr><td style="text-transform:capitalize">${cat}</td><td style="font-weight:600;color:${forPrint?'#E24B4A':'var(--red-l)'}">${fmt(val)}</td><td>${d.totalSaidas>0?Math.round(val/d.totalSaidas*100):0}%</td></tr>`).join('');
+  return`<div class="report-page">
+    <div class="rpt-header"><div style="display:flex;align-items:flex-start;justify-content:space-between"><div><div class="rpt-title">${d.titulo}</div><div class="rpt-sub">${d.periodo} · Gerado em ${fmtDate(Date.now())}</div></div><div style="font-size:${forPrint?'22':'20'}px;font-weight:900;color:${forPrint?'#C9973A':'var(--gold-l)'};letter-spacing:2px">APEX</div></div></div>
+    <div class="rpt-metric-grid">
+      <div class="rpt-metric"><div class="lbl">Receita bruta</div><div class="val" style="color:${forPrint?'#1D9E75':'var(--green-l)'}">${fmt(d.receitaBruta)}</div><div class="sub">${d.checkins.length} atendimentos</div></div>
+      <div class="rpt-metric"><div class="lbl">Custos totais</div><div class="val" style="color:${forPrint?'#E24B4A':'var(--red-l)'}">${fmt(d.totalSaidas)}</div><div class="sub">saídas registradas</div></div>
+      <div class="rpt-metric"><div class="lbl">Saldo líquido</div><div class="val" style="color:${d.saldo>=0?(forPrint?'#1D9E75':'var(--green-l)'):(forPrint?'#E24B4A':'var(--red-l)')}">${fmt(Math.abs(d.saldo))}</div><div class="sub">${d.saldo>=0?'lucro':'prejuízo'}</div></div>
+      <div class="rpt-metric"><div class="lbl">Ticket médio</div><div class="val">${fmt(d.ticketMedio)}</div><div class="sub">por atleta</div></div>
+    </div>
+    ${alertaSaldo}${ticketAlert}
+    <div class="rpt-section"><div class="rpt-section-title">Mix de produtos vendidos</div><table class="rpt-table"><thead><tr><th>Produto</th><th>Qtde</th><th>%</th><th>Receita</th><th>Volume</th></tr></thead><tbody>${planosRows}</tbody></table></div>
+    <div class="rpt-section"><div class="rpt-section-title">Custos por categoria</div>${d.totalSaidas>0?`<table class="rpt-table"><thead><tr><th>Categoria</th><th>Valor</th><th>% do custo</th></tr></thead><tbody>${custosRows}</tbody></table>`:'<div style="font-size:12px;color:var(--gray2);padding:.5rem 0">Nenhum custo registrado para esta sessão</div>'}</div>
+  </div>
+  <div class="report-page">
+    <div class="rpt-section"><div class="rpt-section-title">Lista de atletas atendidos (${d.checkins.length})</div><table class="rpt-table"><thead><tr><th>Nome</th><th>WhatsApp</th><th>Instagram</th><th>Local</th><th>Plano</th><th>Valor</th></tr></thead><tbody>${clientesRows||'<tr><td colspan="6" style="text-align:center;color:#666">Nenhum atleta</td></tr>'}</tbody></table></div>
+  </div>`;
+}
+
+function gerarRelatorio(){const scope=getSessaoSelecionada();if(!scope){alert('Selecione uma sessão ou relatório geral.');return;}const d=buildRelData(scope);document.getElementById('rel-preview').innerHTML=`<div class="print-report">${buildReportHTML(d,false)}</div>`;}
+function gerarRelatorioSessao(sessId){nav('relatorios',document.querySelectorAll('.nav-item')[5]);setTimeout(()=>{const radio=document.querySelector(`input[value="${sessId}"]`);if(radio){radio.checked=true;}const d=buildRelData(sessions.find(s=>s.id===sessId));document.getElementById('rel-preview').innerHTML=`<div class="print-report">${buildReportHTML(d,false)}</div>`;},100);}
+
+function exportarPDF(){const scope=getSessaoSelecionada();if(!scope){alert('Selecione uma sessão primeiro.');return;}const d=buildRelData(scope);const win=window.open('','_blank');win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${d.titulo}</title><style>body{font-family:Arial,sans-serif;color:#000;background:#fff;margin:0}${document.querySelector('style').textContent}</style></head><body><div id="app" style="display:flex">${buildReportHTML(d,true)}</div><script>window.onload=function(){window.print();setTimeout(()=>window.close(),1000);}<\/script></body></html>`);win.document.close();}
+
+function exportarExcel(){
+  const scope=getSessaoSelecionada();
+  if(!scope){alert('Selecione uma sessão primeiro.');return;}
+  const d=buildRelData(scope);
+  const wb=XLSX.utils.book_new();
+  // Aba resumo
+  const resumoData=[
+    ['APEX RECOVERY — '+d.titulo],['Período: '+d.periodo],['Gerado em: '+fmtDate(Date.now())],[],
+    ['RESUMO FINANCEIRO'],
+    ['Receita bruta',d.receitaBruta],['Total de custos',d.totalSaidas],['Saldo líquido',d.saldo],
+    ['Total de atendimentos',d.checkins.length],['Ticket médio',d.ticketMedio],[],
+    ['MIX DE PRODUTOS'],['Produto','Quantidade','% do Total','Receita'],
+    ...Object.entries(d.planCount).map(([plan,qt])=>{const p=plan==='banheira'?29.9:plan==='bota+banheira'?49.9:plan==='massagem+banheira'?59.9:89.9;return[PLAN_META[plan]?.label||plan,qt,Math.round(qt/d.checkins.length*100)+'%',qt*p];}),
+    [],[`CUSTOS POR CATEGORIA`],['Categoria','Valor','% do Total'],
+    ...Object.entries(d.catCount).map(([cat,val])=>[cat,val,d.totalSaidas>0?Math.round(val/d.totalSaidas*100)+'%':'—'])
+  ];
+  const ws1=XLSX.utils.aoa_to_sheet(resumoData);
+  ws1['!cols']=[{wch:30},{wch:18},{wch:14},{wch:16}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumo');
+  // Aba atletas
+  const atletasData=[['Nome','WhatsApp','Instagram','Local','Plano','Valor','Data','Sessão'],...d.checkins.map(c=>[c.nome,c.zap||'',c.insta||'',c.local||'',PLAN_META[c.plan]?.label||c.plan,c.price,fmtDate(c.ts),c.sessionLabel||''])];
+  const ws2=XLSX.utils.aoa_to_sheet(atletasData);
+  ws2['!cols']=[{wch:24},{wch:18},{wch:18},{wch:20},{wch:20},{wch:12},{wch:18},{wch:24}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Atletas');
+  // Aba caixa
+  const caixaData=[['Data','Descrição','Categoria','Tipo','Valor'],...cashflow.sort((a,b)=>b.ts-a.ts).map(c=>[fmtDate(c.ts),c.desc,c.cat,c.type==='entrada'?'Entrada':'Saída',c.type==='entrada'?c.value:-c.value])];
+  const ws3=XLSX.utils.aoa_to_sheet(caixaData);
+  ws3['!cols']=[{wch:18},{wch:32},{wch:16},{wch:10},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws3,'Fluxo de Caixa');
+  const fname=(d.titulo.replace(/[^a-zA-Z0-9]/g,'_')+'_'+new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')+'.xlsx');
+  XLSX.writeFile(wb,fname);
+  toast('Excel exportado: '+fname);
+}
+
+function exportCSV(type){let rows,filename;if(type==='crm'){rows=[['Nome','WhatsApp','Instagram','Local','Plano','Valor Total','Visitas','Data']];clients.forEach(c=>rows.push([c.nome,c.zap||'',c.insta||'',c.local||'',c.plan,c.totalSpent||c.price,c.visits||1,fmtDate(c.ts)]));filename='apex_clientes.csv';}else{rows=[['Data','Descrição','Categoria','Tipo','Valor']];[...cashflow].sort((a,b)=>b.ts-a.ts).forEach(c=>rows.push([fmtDate(c.ts),c.desc,c.cat,c.type,c.value]));filename='apex_caixa.csv';}const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();toast('CSV exportado: '+filename);}
+
+function fmt(v){return'R$ '+Number(v).toFixed(2).replace('.',',');}
+function fmtDate(ts){return new Date(ts).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});}
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',2800);}
+
+function updateUI(){const has=!!activeSession;document.getElementById('session-bar').classList.toggle('hidden',!has);document.getElementById('no-session-bar').classList.toggle('hidden',has);if(has){const rev=activeSession.checkins.reduce((a,c)=>a+c.price,0);document.getElementById('session-info-text').textContent=activeSession.label+' · '+activeSession.checkins.length+' atletas';document.getElementById('session-rev-text').textContent=fmt(rev);renderCheckinList();}renderCaixa();renderCRM();renderHistorico();}
+setSyncStatus('');
+</script>
+</body>
+</html>
